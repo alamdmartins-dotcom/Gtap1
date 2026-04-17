@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>App Tático ELITE</title>
+
+<style>
+body { font-family: Arial; background:#0d0d0d; color:#fff; text-align:center; }
+input, button { margin:5px; padding:10px; border-radius:5px; border:none; }
+button { cursor:pointer; background:#28a745; color:#fff; }
+#app { display:none; }
+.azul { color:#00aaff; }
+.vermelho { color:#ff4444; }
+.chat { max-height:200px; overflow:auto; border:1px solid #333; margin:10px; }
+</style>
+</head>
+
+<body>
+
+<div id="login">
+  <h2>Entrar</h2>
+  <input id="email" placeholder="Email"><br>
+  <input id="senha" type="password" placeholder="Senha"><br>
+  <input id="nomeUser" placeholder="Seu nome"><br>
+  <button onclick="registrar()">Registrar</button>
+  <button onclick="loginUser()">Entrar</button>
+</div>
+
+<div id="app">
+  <h2>App Tático ELITE</h2>
+  <button onclick="logout()">Sair</button>
+
+  <p id="userInfo"></p>
+
+  <h3>Evento</h3>
+  <input type="datetime-local" id="dataEvento">
+  <button onclick="salvarData()">Salvar</button>
+  <p id="statusEvento"></p>
+
+  <h3>Adicionar Nome</h3>
+  <input id="nome">
+  <button onclick="addNome()">Adicionar</button>
+
+  <ul id="lista"></ul>
+  <p id="total"></p>
+
+  <h3>Missão</h3>
+  <input id="missaoInput">
+  <button onclick="salvarMissao()">Salvar</button>
+  <p id="missao"></p>
+
+  <h3>Observação</h3>
+  <input id="obsInput">
+  <button onclick="salvarObs()">Salvar</button>
+  <p id="obs"></p>
+
+  <button onclick="sortear()">Sortear Times</button>
+
+  <h3>Time Azul</h3>
+  <ul id="azul"></ul>
+
+  <h3>Time Vermelho</h3>
+  <ul id="vermelho"></ul>
+
+  <h3>💬 Chat</h3>
+  <div class="chat" id="chat"></div>
+  <input id="msg">
+  <button onclick="enviarMsg()">Enviar</button>
+
+  <h3>📜 Histórico</h3>
+  <div class="chat" id="log"></div>
+
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, deleteDoc, doc, getDoc, getDocs, onSnapshot, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+// CONFIG
+const firebaseConfig =
+ {apiKey: "AIzaSyBerS-gTjBoG6ukYrIlHQPxHbaCBAWKRDI",
+  authDomain: "gtap-6e08f.firebaseapp.com",
+  projectId: "gtap-6e08f",
+  storageBucket: "gtap-6e08f.firebasestorage.app",
+  messagingSenderId: "1021920472413",
+  appId: "1:1021920472413:web:519ba498aef52f8c7c0cb4",
+  measurementId: "G-6CZ4YJHR6Y"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth();
+const db = getFirestore();
+
+let userName = "";
+
+// LOGIN
+window.registrar = async () => {
+  const u = await createUserWithEmailAndPassword(auth,email.value,senha.value);
+
+  await setDoc(doc(db,"usuarios",u.user.uid),{
+    nome: nomeUser.value
+  });
+};
+
+window.loginUser = () => {
+  signInWithEmailAndPassword(auth,email.value,senha.value);
+};
+
+window.logout = () => signOut(auth);
+
+// USUÁRIO
+onAuthStateChanged(auth, async user => {
+  if(user){
+    login.style.display="none";
+    app.style.display="block";
+
+    const d = await getDoc(doc(db,"usuarios",user.uid));
+    userName = d.data().nome;
+
+    userInfo.innerText = "Usuário: " + userName;
+  } else {
+    login.style.display="block";
+    app.style.display="none";
+  }
+});
+
+// LOG
+async function logAcao(txt){
+  await addDoc(collection(db,"log"),{
+    texto: userName + ": " + txt,
+    time: serverTimestamp()
+  });
+}
+
+onSnapshot(collection(db,"log"), snap=>{
+  log.innerHTML="";
+  snap.forEach(d=>{
+    log.innerHTML += `<p>${d.data().texto}</p>`;
+  });
+});
+
+// EVENTO
+window.salvarData = async () => {
+  await setDoc(doc(db,"config","data"),{
+    data: dataEvento.value
+  });
+  logAcao("definiu data");
+};
+
+onSnapshot(doc(db,"config","data"), async docSnap=>{
+  if(docSnap.exists()){
+    const data = new Date(docSnap.data().data);
+    statusEvento.innerText = data.toLocaleString();
+
+    if(new Date() > data){
+      const nomes = await getDocs(collection(db,"nomes"));
+      nomes.forEach(async d=> await deleteDoc(d.ref));
+      logAcao("reset automático");
+    }
+  }
+});
+
+// NOMES
+window.addNome = async () => {
+  await addDoc(collection(db,"nomes"),{
+    nome: nome.value,
+    autor: userName
+  });
+  logAcao("adicionou "+nome.value);
+  nome.value="";
+};
+
+onSnapshot(collection(db,"nomes"), snap=>{
+  lista.innerHTML="";
+  let arr=[];
+
+  snap.forEach(d=>{
+    arr.push(d.data().nome);
+    lista.innerHTML += `
+      <li>
+        ${d.data().nome} (${d.data().autor})
+        <button onclick="remover('${d.id}')">X</button>
+      </li>`;
+  });
+
+  window.listaGlobal = arr;
+  total.innerText = "Total: "+snap.size;
+});
+
+window.remover = async (id)=>{
+  await deleteDoc(doc(db,"nomes",id));
+  logAcao("removeu jogador");
+};
+
+// MISSÃO
+window.salvarMissao = async ()=>{
+  await setDoc(doc(db,"config","missao"),{
+    texto: missaoInput.value
+  });
+  logAcao("alterou missão");
+};
+
+onSnapshot(doc(db,"config","missao"), d=>{
+  if(d.exists()) missao.innerText=d.data().texto;
+});
+
+// OBS
+window.salvarObs = async ()=>{
+  await setDoc(doc(db,"config","obs"),{
+    texto: obsInput.value
+  });
+  logAcao("alterou observação");
+};
+
+onSnapshot(doc(db,"config","obs"), d=>{
+  if(d.exists()) obs.innerText=d.data().texto;
+});
+
+// TIMES
+window.sortear = ()=>{
+  let n=[...(window.listaGlobal||[])];
+  n.sort(()=>Math.random()-0.5);
+
+  azul.innerHTML="";
+  vermelho.innerHTML="";
+
+  n.forEach((nome,i)=>{
+    if(i%2==0){
+      azul.innerHTML+=`<li class="azul">${nome}</li>`;
+    }else{
+      vermelho.innerHTML+=`<li class="vermelho">${nome}</li>`;
+    }
+  });
+
+  logAcao("sorteou times");
+};
+
+// CHAT
+window.enviarMsg = async ()=>{
+  await addDoc(collection(db,"chat"),{
+    nome:userName,
+    msg:msg.value
+  });
+  msg.value="";
+};
+
+onSnapshot(collection(db,"chat"), snap=>{
+  chat.innerHTML="";
+  snap.forEach(d=>{
+    chat.innerHTML += `<p><b>${d.data().nome}:</b> ${d.data().msg}</p>`;
+  });
+});
+
+</script>
+</body>
+</html>
