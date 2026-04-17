@@ -3,85 +3,88 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>App Tático ELITE</title>
+<title>App Tático Online</title>
 
 <style>
-body { font-family: Arial; background:#0d0d0d; color:#fff; text-align:center; }
-input, button { margin:5px; padding:10px; border-radius:5px; border:none; }
-button { cursor:pointer; background:#28a745; color:#fff; }
-#app { display:none; }
-.azul { color:#00aaff; }
-.vermelho { color:#ff4444; }
-.chat { max-height:200px; overflow:auto; border:1px solid #333; margin:10px; }
+body { margin:0; font-family:Arial; background:#0d0f12; color:#00ff9c; }
+.container { padding:15px; }
+h2 { border-left:4px solid #00ff9c; padding-left:10px; }
+input, textarea, button {
+    width:100%; margin-top:8px; padding:10px;
+    border-radius:6px; border:none;
+}
+input, textarea { background:#1a1d21; color:#fff; }
+button { background:#00ff9c; color:#000; font-weight:bold; }
+.lista { background:#1a1d21; padding:10px; border-radius:6px; margin-top:10px; }
+.nome-item { display:flex; justify-content:space-between; margin-bottom:5px; }
+.btnX { background:red; color:#fff; width:35px; }
+.time-box { margin-top:10px; padding:10px; border-radius:6px; }
+.azul { background:#001f3f; }
+.vermelho { background:#3f0000; }
 </style>
 </head>
 
 <body>
 
+<div class="container">
+
+<!-- LOGIN -->
 <div id="login">
-  <h2>Entrar</h2>
-  <input id="email" placeholder="Email"><br>
-  <input id="senha" type="password" placeholder="Senha"><br>
-  <input id="nomeUser" placeholder="Seu nome"><br>
-  <button onclick="registrar()">Registrar</button>
-  <button onclick="loginUser()">Entrar</button>
+<h2>🔐 Login</h2>
+<input id="email" placeholder="Email">
+<input id="senha" type="password" placeholder="Senha">
+<button onclick="registrar()">Registrar</button>
+<button onclick="logar()">Entrar</button>
 </div>
 
-<div id="app">
-  <h2>App Tático ELITE</h2>
-  <button onclick="logout()">Sair</button>
+<!-- APP -->
+<div id="app" style="display:none;">
 
-  <p id="userInfo"></p>
+<h2>📍 Detalhes</h2>
+<input type="date" id="data">
+<input type="time" id="hora">
+<input type="text" id="local" placeholder="Local">
+<button onclick="salvarTudo()">Salvar</button>
 
-  <h3>Evento</h3>
-  <input type="datetime-local" id="dataEvento">
-  <button onclick="salvarData()">Salvar</button>
-  <p id="statusEvento"></p>
+<h2>✅ Confirmar</h2>
+<input id="nome" placeholder="Seu nome">
+<button onclick="confirmar()">Confirmar</button>
+<div id="listaConfirmados" class="lista"></div>
 
-  <h3>Adicionar Nome</h3>
-  <input id="nome">
-  <button onclick="addNome()">Adicionar</button>
+<h2>🎲 Times</h2>
+<button onclick="sortearTimes()">Sortear Times</button>
+<div id="timeAzul" class="time-box azul"></div>
+<div id="timeVermelho" class="time-box vermelho"></div>
 
-  <ul id="lista"></ul>
-  <p id="total"></p>
+<h2>🧾 Observações</h2>
+<textarea id="obs"></textarea>
+<button onclick="salvarTudo()">Salvar</button>
 
-  <h3>Missão</h3>
-  <input id="missaoInput">
-  <button onclick="salvarMissao()">Salvar</button>
-  <p id="missao"></p>
+<h2>🎯 Missão</h2>
+<textarea id="missao"></textarea>
+<button onclick="salvarTudo()">Salvar</button>
 
-  <h3>Observação</h3>
-  <input id="obsInput">
-  <button onclick="salvarObs()">Salvar</button>
-  <p id="obs"></p>
+<div id="briefing" class="lista"></div>
+<button onclick="sair()">Sair</button>
 
-  <button onclick="sortear()">Sortear Times</button>
-
-  <h3>Time Azul</h3>
-  <ul id="azul"></ul>
-
-  <h3>Time Vermelho</h3>
-  <ul id="vermelho"></ul>
-
-  <h3>💬 Chat</h3>
-  <div class="chat" id="chat"></div>
-  <input id="msg">
-  <button onclick="enviarMsg()">Enviar</button>
-
-  <h3>📜 Histórico</h3>
-  <div class="chat" id="log"></div>
-
+</div>
 </div>
 
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, deleteDoc, doc, getDoc, getDocs, onSnapshot, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import {
+  getAuth, createUserWithEmailAndPassword,
+  signInWithEmailAndPassword, onAuthStateChanged, signOut
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// CONFIG
-const firebaseConfig =
- {apiKey: "AIzaSyBerS-gTjBoG6ukYrIlHQPxHbaCBAWKRDI",
+import {
+  getFirestore, collection, addDoc, deleteDoc,
+  doc, setDoc, onSnapshot
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+// 🔥 SEU FIREBASE JÁ CONFIGURADO
+const firebaseConfig = {
+  apiKey: "AIzaSyBerS-gTjBoG6ukYrIlHQPxHbaCBAWKRDI",
   authDomain: "gtap-6e08f.firebaseapp.com",
   projectId: "gtap-6e08f",
   storageBucket: "gtap-6e08f.firebasestorage.app",
@@ -91,169 +94,135 @@ const firebaseConfig =
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth();
-const db = getFirestore();
-
-let userName = "";
+const auth = getAuth(app);
+const db = getFirestore(app);
 
 // LOGIN
-window.registrar = async () => {
-  const u = await createUserWithEmailAndPassword(auth,email.value,senha.value);
+window.registrar = () =>
+  createUserWithEmailAndPassword(auth, email.value, senha.value);
 
-  await setDoc(doc(db,"usuarios",u.user.uid),{
-    nome: nomeUser.value
-  });
-};
+window.logar = () =>
+  signInWithEmailAndPassword(auth, email.value, senha.value);
 
-window.loginUser = () => {
-  signInWithEmailAndPassword(auth,email.value,senha.value);
-};
+window.sair = () => signOut(auth);
 
-window.logout = () => signOut(auth);
-
-// USUÁRIO
-onAuthStateChanged(auth, async user => {
-  if(user){
-    login.style.display="none";
-    app.style.display="block";
-
-    const d = await getDoc(doc(db,"usuarios",user.uid));
-    userName = d.data().nome;
-
-    userInfo.innerText = "Usuário: " + userName;
+// CONTROLE LOGIN
+onAuthStateChanged(auth, user => {
+  if (user) {
+    login.style.display = "none";
+    app.style.display = "block";
+    carregar();
   } else {
-    login.style.display="block";
-    app.style.display="none";
+    login.style.display = "block";
+    app.style.display = "none";
   }
 });
 
-// LOG
-async function logAcao(txt){
-  await addDoc(collection(db,"log"),{
-    texto: userName + ": " + txt,
-    time: serverTimestamp()
+// SALVAR DADOS
+async function salvarTudo() {
+  await setDoc(doc(db, "dados", "geral"), {
+    data: data.value,
+    hora: hora.value,
+    local: local.value,
+    obs: obs.value,
+    missao: missao.value
   });
 }
 
-onSnapshot(collection(db,"log"), snap=>{
-  log.innerHTML="";
-  snap.forEach(d=>{
-    log.innerHTML += `<p>${d.data().texto}</p>`;
+// CONFIRMAR
+window.confirmar = async () => {
+  if (!nome.value) return;
+  await addDoc(collection(db, "confirmados"), {
+    nome: nome.value
   });
-});
-
-// EVENTO
-window.salvarData = async () => {
-  await setDoc(doc(db,"config","data"),{
-    data: dataEvento.value
-  });
-  logAcao("definiu data");
+  nome.value = "";
 };
 
-onSnapshot(doc(db,"config","data"), async docSnap=>{
-  if(docSnap.exists()){
-    const data = new Date(docSnap.data().data);
-    statusEvento.innerText = data.toLocaleString();
+// REMOVER
+async function remover(id) {
+  await deleteDoc(doc(db, "confirmados", id));
+}
 
-    if(new Date() > data){
-      const nomes = await getDocs(collection(db,"nomes"));
-      nomes.forEach(async d=> await deleteDoc(d.ref));
-      logAcao("reset automático");
+// CARREGAR TEMPO REAL
+function carregar() {
+
+  // LISTA
+  onSnapshot(collection(db, "confirmados"), snap => {
+    listaConfirmados.innerHTML = "";
+    let nomes = [];
+
+    snap.forEach(docu => {
+      nomes.push(docu.data().nome);
+
+      let div = document.createElement("div");
+      div.className = "nome-item";
+
+      div.innerHTML =
+        docu.data().nome +
+        " <button class='btnX'>X</button>";
+
+      div.querySelector("button").onclick =
+        () => remover(docu.id);
+
+      listaConfirmados.appendChild(div);
+    });
+
+    window.listaAtual = nomes;
+  });
+
+  // DADOS
+  onSnapshot(doc(db, "dados", "geral"), d => {
+    if (d.exists()) {
+      let dados = d.data();
+
+      data.value = dados.data || "";
+      hora.value = dados.hora || "";
+      local.value = dados.local || "";
+      obs.value = dados.obs || "";
+      missao.value = dados.missao || "";
+
+      briefing.innerText =
+        "MISSÃO:\n" + (dados.missao || "") +
+        "\n\nOBSERVAÇÕES:\n" + (dados.obs || "");
     }
+  });
+
+  // TIMES
+  onSnapshot(doc(db, "dados", "times"), d => {
+    if (d.exists()) {
+      let t = d.data();
+
+      timeAzul.innerHTML =
+        "🔵<br>" + (t.azul || []).join("<br>");
+
+      timeVermelho.innerHTML =
+        "🔴<br>" + (t.vermelho || []).join("<br>");
+    }
+  });
+}
+
+// SORTEIO
+window.sortearTimes = async () => {
+  let lista = window.listaAtual || [];
+
+  if (lista.length < 2) {
+    alert("Precisa de pelo menos 2 jogadores");
+    return;
   }
-});
 
-// NOMES
-window.addNome = async () => {
-  await addDoc(collection(db,"nomes"),{
-    nome: nome.value,
-    autor: userName
+  lista.sort(() => Math.random() - 0.5);
+
+  let meio = Math.ceil(lista.length / 2);
+
+  let azul = lista.slice(0, meio);
+  let vermelho = lista.slice(meio);
+
+  await setDoc(doc(db, "dados", "times"), {
+    azul, vermelho
   });
-  logAcao("adicionou "+nome.value);
-  nome.value="";
 };
-
-onSnapshot(collection(db,"nomes"), snap=>{
-  lista.innerHTML="";
-  let arr=[];
-
-  snap.forEach(d=>{
-    arr.push(d.data().nome);
-    lista.innerHTML += `
-      <li>
-        ${d.data().nome} (${d.data().autor})
-        <button onclick="remover('${d.id}')">X</button>
-      </li>`;
-  });
-
-  window.listaGlobal = arr;
-  total.innerText = "Total: "+snap.size;
-});
-
-window.remover = async (id)=>{
-  await deleteDoc(doc(db,"nomes",id));
-  logAcao("removeu jogador");
-};
-
-// MISSÃO
-window.salvarMissao = async ()=>{
-  await setDoc(doc(db,"config","missao"),{
-    texto: missaoInput.value
-  });
-  logAcao("alterou missão");
-};
-
-onSnapshot(doc(db,"config","missao"), d=>{
-  if(d.exists()) missao.innerText=d.data().texto;
-});
-
-// OBS
-window.salvarObs = async ()=>{
-  await setDoc(doc(db,"config","obs"),{
-    texto: obsInput.value
-  });
-  logAcao("alterou observação");
-};
-
-onSnapshot(doc(db,"config","obs"), d=>{
-  if(d.exists()) obs.innerText=d.data().texto;
-});
-
-// TIMES
-window.sortear = ()=>{
-  let n=[...(window.listaGlobal||[])];
-  n.sort(()=>Math.random()-0.5);
-
-  azul.innerHTML="";
-  vermelho.innerHTML="";
-
-  n.forEach((nome,i)=>{
-    if(i%2==0){
-      azul.innerHTML+=`<li class="azul">${nome}</li>`;
-    }else{
-      vermelho.innerHTML+=`<li class="vermelho">${nome}</li>`;
-    }
-  });
-
-  logAcao("sorteou times");
-};
-
-// CHAT
-window.enviarMsg = async ()=>{
-  await addDoc(collection(db,"chat"),{
-    nome:userName,
-    msg:msg.value
-  });
-  msg.value="";
-};
-
-onSnapshot(collection(db,"chat"), snap=>{
-  chat.innerHTML="";
-  snap.forEach(d=>{
-    chat.innerHTML += `<p><b>${d.data().nome}:</b> ${d.data().msg}</p>`;
-  });
-});
 
 </script>
+
 </body>
 </html>
